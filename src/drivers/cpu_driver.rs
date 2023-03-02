@@ -9,14 +9,14 @@ use super::speaker_driver::Speaker;
 pub struct CPU<'a, 'b, 'c> {
     display: &'a mut Display,
     keyboard: &'b Keyboard,
-    speaker: &'c Speaker,
-    memory: Vec<u8>,
-    v: Vec<i32>,
-    i: i32,
-    delay_timer: i32,
-    sound_timer: i32,
-    pc: i32,
-    stack: Vec<i32>,
+    _speaker: &'c Speaker,
+    memory: [u8; 4096],
+    v: [u8; 16],
+    i: u32,
+    delay_timer: u8,
+    sound_timer: u8,
+    pc: u32,
+    stack: Vec<u32>,
     paused: bool,
     speed: u32,
 }
@@ -26,9 +26,9 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
         CPU {
             display: display,
             keyboard: keyboard,
-            speaker: speaker,
-            memory: vec![0; 4096],
-            v: vec![0; 16],
+            _speaker: speaker,
+            memory: [0; 4096],
+            v: [0; 16],
             i: 0,
             delay_timer: 0,
             sound_timer: 0,
@@ -80,10 +80,10 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
     }
 
     pub fn cycle(&mut self) {
-        for i in 0..self.speed {
+        for _ in 0..self.speed {
             if !self.paused {
-                let opcode: i32 = ((self.memory[self.pc as usize] as i32) << 8
-                    | self.memory[(self.pc + 1) as usize] as i32);
+                let opcode = (self.memory[self.pc as usize] as u32) << 8
+                    | self.memory[(self.pc + 1) as usize] as u32;
                 self.execute_instruction(opcode);
             }
         }
@@ -114,7 +114,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
         }
     }
 
-    pub fn execute_instruction(&mut self, opcode: i32) {
+    pub fn execute_instruction(&mut self, opcode: u32) {
         self.pc += 2;
 
         let x = ((opcode & 0x0F00) >> 8) as usize;
@@ -141,13 +141,13 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
             }
 
             0x3000 => {
-                if self.v[x] == (opcode & 0xFF) {
+                if self.v[x] == (opcode & 0xFF) as u8 {
                     self.pc += 2;
                 }
             }
 
             0x4000 => {
-                if self.v[x] != (opcode & 0xFF) {
+                if self.v[x] != (opcode & 0xFF) as u8 {
                     self.pc += 2;
                 }
             }
@@ -159,7 +159,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
             }
 
             0x7000 => {
-                self.v[x] += opcode & 0xFF;
+                self.v[x] = u8::wrapping_add(self.v[x], (opcode & 0xFF) as u8);
             }
 
             0x8000 => match opcode & 0xF {
@@ -180,8 +180,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                 }
 
                 0x4 => {
-                    self.v[x] += self.v[y];
-                    let sum = self.v[x];
+                    let sum = (self.v[x] as u32) + (self.v[y] as u32);
 
                     self.v[0xF] = 0;
 
@@ -189,7 +188,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                         self.v[0xF] = 1;
                     }
 
-                    self.v[x] = sum;
+                    self.v[x] = sum as u8;
                 }
 
                 0x5 => {
@@ -236,30 +235,33 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
             }
 
             0xB000 => {
-                self.pc = (opcode & 0xFFF) + self.v[0];
+                self.pc = (opcode & 0xFFF) + self.v[0] as u32;
             }
 
             0xC000 => {
                 let mut rng = rand::thread_rng();
-                let rand = rng.gen_range(0..=0xFF);
+                let rand: u8 = rng.gen_range(0..=0xFF);
 
-                self.v[x] = rand & (opcode & 0xFF);
+                self.v[x] = rand & (opcode & 0xFF) as u8;
             }
 
             0xD000 => {
                 let width = 8;
-                let height = opcode & 0xF;
+                let height = (opcode & 0xF) as u8;
 
                 self.v[0xF] = 0;
 
                 for row in 0..height {
-                    let mut sprite = self.memory[(self.i + row) as usize];
+                    let mut sprite = self.memory[(self.i + row as u32) as usize];
 
                     for col in 0..width {
                         if (sprite & 0x80) > 0 {
+                            let col = col as usize;
+                            let row = row as usize;
+
                             if self
                                 .display
-                                .set_pixel((self.v[x] + col) as i32, (self.v[y] + row) as i32)
+                                .set_pixel(self.v[x] as usize + col, self.v[y] as usize + row)
                             {
                                 self.v[0xF] = 1;
                             }
@@ -308,30 +310,28 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                 }
 
                 0x1E => {
-                    self.i += self.v[x];
+                    self.i += self.v[x] as u32;
                 }
 
                 0x29 => {
-                    self.i = self.v[x] * 5;
+                    self.i = (self.v[x] as u32) * 5;
                 }
 
                 0x33 => {
-                    self.memory[self.i as usize] = (self.v[x] / 100) as u8;
-                    self.memory[(self.i + 1) as usize] = ((self.v[x] % 100) / 10) as u8;
-                    self.memory[(self.i + 2) as usize] = (self.v[x] % 10) as u8;
+                    self.memory[self.i as usize] = self.v[x] / 100;
+                    self.memory[(self.i + 1) as usize] = (self.v[x] % 100) / 10;
+                    self.memory[(self.i + 2) as usize] = self.v[x] % 10;
                 }
 
                 0x55 => {
                     for register_index in 0..=x {
-                        self.memory[((self.i as usize) + register_index)] =
-                            self.v[register_index] as u8;
+                        self.memory[((self.i as usize) + register_index)] = self.v[register_index];
                     }
                 }
 
                 0x65 => {
                     for register_index in 0..=x {
-                        self.v[register_index] =
-                            self.memory[(self.i as usize) + register_index] as i32;
+                        self.v[register_index] = self.memory[(self.i as usize) + register_index];
                     }
                 }
                 _ => {

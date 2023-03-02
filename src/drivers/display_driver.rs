@@ -41,39 +41,23 @@ impl Display {
         (self.width, self.height)
     }
 
-    pub fn set_pixel(&mut self, mut x: i32, mut y: i32) -> bool {
-        let test = Self::COLS as i32;
-        let test2 = Self::ROWS as i32;
-        while x > test {
-            x -= test;
-        }
-        while x < 0 {
-            x += test;
-            println!("CODE ANTI OVERFLOW");
+    pub fn set_pixel(&mut self, mut x: usize, mut y: usize) -> bool {
+        if x > Self::COLS {
+            x = 0;
         }
 
-        while y > test2 {
-            y -= test2;
-        }
-        while y < 0{
-            y += test2;
-            println!("CODE ANTI OVERFLOW");
+        if y > Self::ROWS {
+            y = 0;
         }
 
-        let pixel_loc = x + (y * test);
+        let pixel_loc = x + (y * Self::COLS);
 
-        self.buffer[pixel_loc as usize] = match self.buffer[pixel_loc as usize] {
+        self.buffer[pixel_loc] = match self.buffer[pixel_loc] {
             Pixel::ON => Pixel::OFF,
             Pixel::OFF => Pixel::ON,
-            _ => Pixel::OFF,
         };
 
         true
-    }
-
-    pub fn test_render(&mut self) {
-        self.set_pixel(0, 0);
-        self.set_pixel(5, 2);
     }
 
     pub fn clear(&mut self) {
