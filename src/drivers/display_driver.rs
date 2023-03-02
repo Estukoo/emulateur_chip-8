@@ -1,10 +1,18 @@
+use std::f32::consts::PI;
+
 use minifb;
+
+#[derive(Clone, Copy)]
+enum Pixel {
+    ON,
+    OFF,
+}
 
 pub struct Display {
     scale: usize,
     width: usize,
     height: usize,
-    buffer: Vec<u32>,
+    buffer: Vec<Pixel>,
     window: minifb::Window,
 }
 
@@ -14,7 +22,7 @@ impl Display {
 
     pub fn new(title: &str, scale: usize) -> Self {
         let (width, height) = (Self::COLS * scale, Self::ROWS * scale);
-        let buffer = vec![0; width * height];
+        let buffer = vec![Pixel::OFF; Self::COLS * Self::ROWS];
 
         let mut window =
             minifb::Window::new(title, width, height, minifb::WindowOptions::default())
@@ -36,17 +44,25 @@ impl Display {
     }
 
     pub fn set_pixel(&mut self, mut x: usize, mut y: usize) -> bool {
-        x *= self.scale;
-        y *= self.scale;
-
-        for row in y..(y + self.scale) {
-            for col in x..(x + self.scale) {
-                let index = row * self.width + col;
-                if index < self.buffer.len() {
-                    self.buffer[index] = 0x00ff00;
-                }
-            }
+        if x > Self::COLS {
+            x -= Self::COLS;
+        } else if x < 0 {
+            x += Self::COLS;
         }
+
+        if y > Self::ROWS {
+            y -= Self::ROWS;
+        } else if y < 0 {
+            y += Self::ROWS;
+        }
+
+        let pixel_loc = x + (y * Self::COLS);
+
+        self.buffer[pixel_loc] = match self.buffer[pixel_loc] {
+            Pixel::ON => Pixel::OFF,
+            Pixel::OFF => Pixel::ON,
+            _ => Pixel::OFF,
+        };
 
         true
     }
@@ -57,12 +73,33 @@ impl Display {
     }
 
     pub fn clear(&mut self) {
-        self.buffer.iter_mut().for_each(|p| *p = 0);
+        self.buffer.iter_mut().for_each(|p| *p = Pixel::OFF);
     }
 
-    pub fn update(&mut self) {
+    pub fn render(&mut self) {
+        let mut buffer: Vec<u32> = vec![0; self.width * self.height];
+
+        for (index, pixel) in self.buffer.iter_mut().enumerate() {
+            let x = (index % Self::COLS) * self.scale;
+            let y = ((index / Self::COLS) as f32).floor() as usize * self.scale;
+
+            match pixel {
+                Pixel::ON => {
+                    for row in y..(y + self.scale) {
+                        for col in x..(x + self.scale) {
+                            let index = row * self.width + col;
+                            if index < buffer.len() {
+                                buffer[index] = 0x00ff00;
+                            }
+                        }
+                    }
+                }
+                Pixel::OFF => {}
+            }
+        }
+
         self.window
-            .update_with_buffer(&self.buffer, self.width, self.height)
+            .update_with_buffer(&buffer, self.width, self.height)
             .unwrap_or_else(|e| panic!("{}", e));
     }
 

@@ -59,13 +59,13 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
             0xF0, 0x80, 0xF0, 0x80, 0x80, // F
         ];
 
-        for i in 0..=sprites.len() {
+        for i in 0..sprites.len() {
             self.memory[i] = sprites[i];
         }
     }
 
     pub fn load_prog_into_memory(&mut self, prog: Vec<u8>) {
-        for loc in 0..=prog.len() {
+        for loc in 0..prog.len() {
             self.memory[0x200 + loc] = prog[loc];
         }
     }
@@ -80,9 +80,10 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
     }
 
     pub fn cycle(&mut self) {
-        for i in 0..=self.speed {
+        for i in 0..self.speed {
             if !self.paused {
-                let opcode = (self.memory[self.pc] << 8 | self.memory[self.pc + 1]);
+                let opcode = ((self.memory[self.pc] as u32) << 8 | self.memory[self.pc + 1] as u32) as u16;
+                self.execute_instruction(opcode as usize);
             }
         }
 
@@ -91,7 +92,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
         }
 
         self.play_sound();
-        self.display.test_render();
+        self.display.render();
     }
 
     pub fn update_timers(&mut self) {
@@ -234,14 +235,14 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
             }
 
             0xB000 => {
-                self.pc = opcode & 0xFFF + self.v[0];
+                self.pc = (opcode & 0xFFF) + self.v[0];
             }
 
             0xC000 => {
                 let mut rng = rand::thread_rng();
                 let rand = rng.gen_range(0..=0xFF);
 
-                self.v[x] = rand & opcode & 0xFF;
+                self.v[x] = rand & (opcode & 0xFF);
             }
 
             0xD000 => {
@@ -283,7 +284,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
             0xF000 => match opcode & 0xFF {
                 0x07 => {
                     self.v[x] = self.delay_timer;
-                },
+                }
 
                 0x0A => {
                     self.paused = true;
@@ -327,8 +328,10 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                         self.v[register_index] = self.memory[self.i + register_index] as usize
                     }
                 }
-                _ => {}
-            }
+                _ => {
+                    println!("Unknown opcode : {}", opcode);
+                }
+            },
 
             _ => {}
         }

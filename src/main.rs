@@ -14,10 +14,12 @@ fn main() {
     let mut display = Display::new("Chip-8 Emulator - Alpha", 20);
     let speaker = Speaker::new();
     let keyboard = Keyboard::new();
-    let _cpu = CPU::new(&mut display, &keyboard, &speaker);
+    let mut cpu = CPU::new(&mut display, &keyboard, &speaker);
 
-    while display.is_open() && !display.is_key_down(minifb::Key::Escape) {
-        display.update();
-        display.test_render();
+    cpu.load_sprites_into_memory();
+    cpu.load_rom("D:/DOCUMENTS/Desktop/Rust Projects/emulateur_chip-8/src/Airplane.ch8");
+
+    while true {
+        cpu.cycle();
     }
 }
