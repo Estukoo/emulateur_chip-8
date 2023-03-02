@@ -1,6 +1,7 @@
 use minifb;
 
 pub struct Display {
+    scale: usize,
     width: usize,
     height: usize,
     buffer: Vec<u32>,
@@ -8,14 +9,11 @@ pub struct Display {
 }
 
 impl Display {
-    const DEFAULT_WIDTH: usize = 640;
-    const DEFAULT_HEIGHT: usize = 360;
+    const COLS: usize = 64;
+    const ROWS: usize = 32;
 
-    // const COLS: usize = 64;
-    // const ROWS: usize = 32;
-
-    pub fn new(title: &str, dimensions: Option<(usize, usize)>) -> Self {
-        let (width, height) = dimensions.unwrap_or((Self::DEFAULT_WIDTH, Self::DEFAULT_HEIGHT));
+    pub fn new(title: &str, scale: usize) -> Self {
+        let (width, height) = (Self::COLS * scale, Self::ROWS * scale);
         let buffer = vec![0; width * height];
 
         let mut window =
@@ -25,25 +23,37 @@ impl Display {
         window.limit_update_rate(Some(std::time::Duration::from_micros(16_600)));
 
         Display {
-            width,
-            height,
-            buffer,
-            window,
+            scale: scale,
+            width: width,
+            height: height,
+            buffer: buffer,
+            window: window,
         }
     }
 
-    pub fn get_dimensions(&self) -> (usize, usize) {
+    pub fn _get_dimensions(&self) -> (usize, usize) {
         (self.width, self.height)
     }
 
-    pub fn set_pixel(&mut self, x: usize, y: usize, color: (u32, u32, u32)) {
-        let index = y * self.width + x;
-        if index < self.buffer.len() {
-            self.buffer[index] = ((color.0 as u32) << 24)
-                | ((color.1 as u32) << 16)
-                | ((color.2 as u32) << 8)
-                | 0xFF;
+    pub fn set_pixel(&mut self, mut x: usize, mut y: usize) -> bool {
+        x *= self.scale;
+        y *= self.scale;
+
+        for row in y..(y + self.scale) {
+            for col in x..(x + self.scale) {
+                let index = row * self.width + col;
+                if index < self.buffer.len() {
+                    self.buffer[index] = 0x00ff00;
+                }
+            }
         }
+
+        true
+    }
+
+    pub fn test_render(&mut self) {
+        self.set_pixel(0, 0);
+        self.set_pixel(5, 2);
     }
 
     pub fn clear(&mut self) {

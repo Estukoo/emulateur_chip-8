@@ -1,25 +1,23 @@
 mod drivers {
+    pub mod cpu_driver;
     pub mod display_driver;
+    pub mod keyboard_driver;
+    pub mod speaker_driver;
 }
 
+use drivers::cpu_driver::CPU;
 use drivers::display_driver::Display;
+use drivers::keyboard_driver::Keyboard;
+use drivers::speaker_driver::Speaker;
 
 fn main() {
-    let mut wnd = Display::new("Chip-8 Emulator - Alpha", None);
+    let mut display = Display::new("Chip-8 Emulator - Alpha", 20);
+    let speaker = Speaker::new();
+    let keyboard = Keyboard::new();
+    let _cpu = CPU::new(&mut display, &keyboard, &speaker);
 
-    println!(
-        "Dims : {} : {}",
-        wnd.get_dimensions().0,
-        wnd.get_dimensions().1
-    );
-
-    let mut x: usize = 0;
-    let mut y: usize = 0;
-
-    while wnd.is_open() && !wnd.is_key_down(minifb::Key::Escape) {
-        wnd.update();
-        wnd.set_pixel(x, y, (255, 255, 0));
-        x += 1;
-        y += 1;
+    while display.is_open() && !display.is_key_down(minifb::Key::Escape) {
+        display.update();
+        display.test_render();
     }
 }
