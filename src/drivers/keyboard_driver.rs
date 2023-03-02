@@ -5,7 +5,7 @@ impl Keyboard {
         Keyboard {}
     }
 
-    pub fn is_key_pressed(&self, jsp: usize) -> bool {
+    pub fn is_key_pressed(&self, jsp: i32) -> bool {
         // TODO
         true
     }

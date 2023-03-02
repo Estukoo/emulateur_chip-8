@@ -11,12 +11,12 @@ pub struct CPU<'a, 'b, 'c> {
     keyboard: &'b Keyboard,
     speaker: &'c Speaker,
     memory: Vec<u8>,
-    v: Vec<usize>,
-    i: usize,
-    delay_timer: usize,
-    sound_timer: usize,
-    pc: usize,
-    stack: Vec<usize>,
+    v: Vec<i32>,
+    i: i32,
+    delay_timer: i32,
+    sound_timer: i32,
+    pc: i32,
+    stack: Vec<i32>,
     paused: bool,
     speed: u32,
 }
@@ -82,8 +82,9 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
     pub fn cycle(&mut self) {
         for i in 0..self.speed {
             if !self.paused {
-                let opcode = ((self.memory[self.pc] as u32) << 8 | self.memory[self.pc + 1] as u32) as u16;
-                self.execute_instruction(opcode as usize);
+                let opcode: i32 = ((self.memory[self.pc as usize] as i32) << 8
+                    | self.memory[(self.pc + 1) as usize] as i32);
+                self.execute_instruction(opcode);
             }
         }
 
@@ -113,11 +114,11 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
         }
     }
 
-    pub fn execute_instruction(&mut self, opcode: usize) {
+    pub fn execute_instruction(&mut self, opcode: i32) {
         self.pc += 2;
 
-        let x = (opcode & 0x0F00) >> 8;
-        let y = (opcode & 0x00F0) >> 4;
+        let x = ((opcode & 0x0F00) >> 8) as usize;
+        let y = ((opcode & 0x00F0) >> 4) as usize;
 
         match opcode & 0xF000 {
             0x0000 => match opcode {
@@ -252,11 +253,14 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                 self.v[0xF] = 0;
 
                 for row in 0..height {
-                    let mut sprite = self.memory[self.i + row];
+                    let mut sprite = self.memory[(self.i + row) as usize];
 
                     for col in 0..width {
                         if (sprite & 0x80) > 0 {
-                            if self.display.set_pixel(self.v[x] + col, self.v[y] + row) {
+                            if self
+                                .display
+                                .set_pixel((self.v[x] + col) as i32, (self.v[y] + row) as i32)
+                            {
                                 self.v[0xF] = 1;
                             }
                         }
@@ -312,20 +316,22 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                 }
 
                 0x33 => {
-                    self.memory[self.i] = (self.v[x] / 100) as u8;
-                    self.memory[self.i + 1] = ((self.v[x] % 100) / 10) as u8;
-                    self.memory[self.i + 2] = (self.v[x] % 10) as u8;
+                    self.memory[self.i as usize] = (self.v[x] / 100) as u8;
+                    self.memory[(self.i + 1) as usize] = ((self.v[x] % 100) / 10) as u8;
+                    self.memory[(self.i + 2) as usize] = (self.v[x] % 10) as u8;
                 }
 
                 0x55 => {
                     for register_index in 0..=x {
-                        self.memory[self.i + register_index] = self.v[register_index] as u8;
+                        self.memory[((self.i as usize) + register_index)] =
+                            self.v[register_index] as u8;
                     }
                 }
 
                 0x65 => {
                     for register_index in 0..=x {
-                        self.v[register_index] = self.memory[self.i + register_index] as usize
+                        self.v[register_index] =
+                            self.memory[(self.i as usize) + register_index] as i32;
                     }
                 }
                 _ => {

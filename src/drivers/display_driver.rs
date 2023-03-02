@@ -1,5 +1,3 @@
-use std::f32::consts::PI;
-
 use minifb;
 
 #[derive(Clone, Copy)]
@@ -43,22 +41,28 @@ impl Display {
         (self.width, self.height)
     }
 
-    pub fn set_pixel(&mut self, mut x: usize, mut y: usize) -> bool {
-        if x > Self::COLS {
-            x -= Self::COLS;
-        } else if x < 0 {
-            x += Self::COLS;
+    pub fn set_pixel(&mut self, mut x: i32, mut y: i32) -> bool {
+        let test = Self::COLS as i32;
+        let test2 = Self::ROWS as i32;
+        while x > test {
+            x -= test;
+        }
+        while x < 0 {
+            x += test;
+            println!("CODE ANTI OVERFLOW");
         }
 
-        if y > Self::ROWS {
-            y -= Self::ROWS;
-        } else if y < 0 {
-            y += Self::ROWS;
+        while y > test2 {
+            y -= test2;
+        }
+        while y < 0{
+            y += test2;
+            println!("CODE ANTI OVERFLOW");
         }
 
-        let pixel_loc = x + (y * Self::COLS);
+        let pixel_loc = x + (y * test);
 
-        self.buffer[pixel_loc] = match self.buffer[pixel_loc] {
+        self.buffer[pixel_loc as usize] = match self.buffer[pixel_loc as usize] {
             Pixel::ON => Pixel::OFF,
             Pixel::OFF => Pixel::ON,
             _ => Pixel::OFF,
