@@ -57,7 +57,10 @@ impl Display {
             Pixel::OFF => Pixel::ON,
         };
 
-        true
+        match self.buffer[pixel_loc] {
+            Pixel::ON => false,
+            Pixel::OFF => true,
+        }
     }
 
     pub fn clear(&mut self) {
