@@ -37,20 +37,20 @@ impl Display {
         }
     }
 
-    pub fn _get_dimensions(&self) -> (usize, usize) {
-        (self.width, self.height)
-    }
-
-    pub fn set_pixel(&mut self, mut x: usize, mut y: usize) -> bool {
-        if x > Self::COLS {
+    pub fn set_pixel(&mut self, mut x: isize, mut y: isize) -> bool {
+        if x > Self::COLS as isize {
             x = 0;
+        } else if x < 0 {
+            x = Self::COLS as isize;
         }
 
-        if y > Self::ROWS {
+        if y > Self::ROWS as isize {
             y = 0;
+        } else if y < 0 {
+            y = Self::ROWS as isize;
         }
 
-        let pixel_loc = x + (y * Self::COLS);
+        let pixel_loc = (x + (y * Self::COLS as isize)) as usize;
 
         self.buffer[pixel_loc] = match self.buffer[pixel_loc] {
             Pixel::ON => Pixel::OFF,
@@ -92,13 +92,5 @@ impl Display {
         self.window
             .update_with_buffer(&buffer, self.width, self.height)
             .unwrap_or_else(|e| panic!("{}", e));
-    }
-
-    pub fn is_open(&self) -> bool {
-        self.window.is_open()
-    }
-
-    pub fn is_key_down(&self, key: minifb::Key) -> bool {
-        self.window.is_key_down(key)
     }
 }

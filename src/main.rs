@@ -19,7 +19,7 @@ fn main() {
     cpu.load_sprites_into_memory();
     cpu.load_rom("D:/DOCUMENTS/Desktop/Rust Projects/emulateur_chip-8/src/Airplane.ch8");
 
-    while true {
+    loop {
         cpu.cycle();
     }
 }
