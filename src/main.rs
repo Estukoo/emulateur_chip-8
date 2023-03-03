@@ -17,7 +17,7 @@ fn main() {
     let mut cpu = CPU::new(&mut display, &keyboard, &speaker);
 
     cpu.load_sprites_into_memory();
-    cpu.load_rom("D:/DOCUMENTS/Desktop/Rust Projects/emulateur_chip-8/src/Airplane.ch8");
+    cpu.load_rom("D:/DOCUMENTS/Desktop/Rust Projects/emulateur_chip-8/src/PONG2");
 
     loop {
         cpu.cycle();

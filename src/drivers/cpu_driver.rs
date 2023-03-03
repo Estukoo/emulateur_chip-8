@@ -9,7 +9,7 @@ use super::speaker_driver::Speaker;
 
 pub struct CPU<'a, 'b, 'c> {
     display: &'a mut Display,
-    keyboard: &'b Keyboard,
+    _keyboard: &'b Keyboard,
     _speaker: &'c Speaker,
     memory: [u8; 4096],
     registers: [u8; 16],
@@ -26,7 +26,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
     pub fn new(display: &'a mut Display, keyboard: &'b Keyboard, speaker: &'c Speaker) -> Self {
         CPU {
             display: display,
-            keyboard: keyboard,
+            _keyboard: keyboard,
             _speaker: speaker,
             memory: [0; 4096],
             registers: [0; 16],
@@ -46,7 +46,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
         let sprites = [
             0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
             0x20, 0x60, 0x20, 0x20, 0x70, // 1
-            0xF0, 0x10, 0xF0, 0x80, 0xF0, //  2;
+            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2;
             0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
             0x90, 0x90, 0xF0, 0x10, 0x10, // 4
             0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
@@ -110,40 +110,40 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
     }
 
     pub fn execute_instruction(&mut self, opcode: u32) {
-        self.pc +=  2;;
+        self.pc += 2;
 
         let x = ((opcode & 0x0F00) >> 8) as usize;
         let y = ((opcode & 0x00F0) >> 4) as usize;
 
-        match (opcode & 0xF000) {
+        match opcode & 0xF000 {
             0x0000 => match opcode {
                 0x00E0 => self.display.clear(),
                 0x00EE => self.pc = self.stack.pop().unwrap(),
                 _ => {}
             }
-            0x1000 => self.pc = (opcode & 0xFFF),
+            0x1000 => self.pc = opcode & 0xFFF,
             0x2000 => {
                 self.stack.push(self.pc);
-                self.pc = (opcode & 0xFFF);
+                self.pc = opcode & 0xFFF;
             }
             0x3000 => {
                 if self.registers[x] == (opcode & 0xFF) as u8 {
-                    self.pc +=  2;;
+                    self.pc += 2;
                 }
             }
             0x4000 => {
                 if self.registers[x] != (opcode & 0xFF) as u8 {
-                    self.pc +=  2;;
+                    self.pc += 2;
                 }
             }
             0x5000 => {
                 if self.registers[x] == self.registers[y] {
-                    self.pc +=  2;;
+                    self.pc += 2;
                 }
             }
             0x6000 => self.registers[x] = (opcode & 0xFF) as u8,
             0x7000 => self.registers[x] = u8::wrapping_add(self.registers[x], (opcode & 0xFF) as u8),
-            0x8000 => match (opcode & 0xF) {
+            0x8000 => match opcode & 0xF {
                 0x0 => self.registers[x] = self.registers[y],
                 0x1 => self.registers[x] |= self.registers[y],
                 0x2 => self.registers[x] &= self.registers[y],
@@ -161,10 +161,10 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                         self.registers[0xF] = 1;
                     }
 
-                    self.registers[x] -= self.registers[y];
+                    self.registers[x] = u8::wrapping_sub(self.registers[x], self.registers[y]);
                 }
                 0x6 => {
-                    self.registers[0xF] = (self.registers[x] & 0x1);
+                    self.registers[0xF] = self.registers[x] & 0x1;
                     self.registers[x] >>= 1;
                 }
                 0x7 => {
@@ -175,14 +175,14 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                     self.registers[x] = self.registers[y] - self.registers[x];
                 }
                 0xE => {
-                    self.registers[0xF] = (self.registers[x] & 0x80);
+                    self.registers[0xF] = self.registers[x] & 0x80;
                     self.registers[x] <<= 1;
                 }
                 _ => {}
             }
             0x9000 => {
                 if self.registers[x] != self.registers[y] {
-                    self.pc +=  2;;
+                    self.pc += 2;
                 }
             }
             0xA000 => self.address = (opcode & 0xFFF) as usize,
@@ -195,7 +195,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
             }
             0xD000 => {
                 let width = 8;
-                let height = (opcode & 0xF);
+                let height = opcode & 0xF;
 
                 self.registers[0xF] = 0;
 
@@ -216,7 +216,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                     }
                 }
             }
-            0xE000 => match (opcode & 0xFF) {
+            0xE000 => match opcode & 0xFF {
                 0x9E => {
                     self.pc += 2;
                 }
@@ -225,7 +225,7 @@ impl<'a, 'b, 'c> CPU<'a, 'b, 'c> {
                 }
                 _ => {}
             }
-            0xF000 => match (opcode & 0xFF) {
+            0xF000 => match opcode & 0xFF {
                 0x07 => self.registers[x] = self.delay_timer,
                 0x0A => {
                     self.paused = true;
